@@ -1,0 +1,14 @@
+Admin
+    add user normal user
+    create 
+    delete
+
+User 
+    Group
+        create
+        delete
+        serach
+        add member in Group
+            essage in Group   
+                send message in group
+                like message
