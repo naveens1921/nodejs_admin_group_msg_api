@@ -1,36 +1,36 @@
+require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
-const authRoutes = require('./routes/auth');
+const { router } = require('./routes/auth');
+const userManage = require('./routes/user');
+const groupManage = require('./routes/group');
+const messageManage = require('./routes/message');
 const app = express();
 app.use(express.json());
-const port = 3000;
-const config = require('./config/env'); // Import the environment variable configuration
+const port = process.env.PORT;
 
-// ...
+app.use('/auth', router);
+app.use('/users', userManage);
+app.use('/group', groupManage);
+app.use('/message', messageManage);
 
-// Access the secret key
-const secretKey = config.JWT_SECRET;
-app.use('/auth', authRoutes);
-// Connection URL to your MongoDB server
 const mongoURI = 'mongodb://0.0.0.0:27017/mongoapp';
 
-// Connect to MongoDB
 mongoose.connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true })
     .then(() => {
         console.log('Connected to MongoDB');
-        console.log(config.JWT_SECRET,'token');
+       
     })
     .catch(err => {
         console.error('Error connecting to MongoDB: ' + err);
     });
 
 
-// Define routes and middleware here
-
 app.listen(port, () => {
     console.log(`Server is running on http://localhost:${port}`);
 });
 
+module.exports = app;
 
 
 

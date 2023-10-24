@@ -1,19 +1,18 @@
 const mongoose = require('mongoose');
 
 const messageSchema = new mongoose.Schema({
-    senderId: {
+    userId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
     },
-    groupId: {
+    messageId: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'Group',
+        ref: 'Message',
     },
-    content: String,
     timestamp: {
         type: Date,
         default: Date.now,
     },
 });
 
-module.exports = mongoose.model('Message', messageSchema);
+module.exports = mongoose.model('MessageLike', messageSchema);

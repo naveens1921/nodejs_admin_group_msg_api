@@ -1,4 +1,3 @@
-// models/User.js
 
 const mongoose = require('mongoose');
 
@@ -11,7 +10,7 @@ const userSchema = new mongoose.Schema({
         enum: ['user', 'admin'],
         default: 'user',
     },
-    // Add other user-related fields as needed
+   
 });
 
 module.exports = mongoose.model('User', userSchema);

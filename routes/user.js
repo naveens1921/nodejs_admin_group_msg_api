@@ -1,71 +1,94 @@
 const express = require('express');
 const router = express.Router();
-const authMiddleware = require('../middleware/authMiddleware');
 const User = require('../models/user');
 const Admin = require('../models/admin'); // Replace with your admin model
-const { requireRole } = require('../middleware/authMiddleware');
+const { isAdmin } = require('../middleware/authMiddleware');
+const { authenticateUser } = require('../middleware/authMiddleware');
+const bcrypt = require('bcrypt');
 
-// Protected route: User Profile
-router.get('/profile', authMiddleware('user'), async (req, res) => {
-    try {
-        // Access user data from req.user (decoded JWT payload)
-        const userId = req.user.userId;
 
-        // Retrieve the user's profile information
-        const user = await User.findById(userId).select('-password');
+//  User Profile
+router.get('/profile/:userId', authenticateUser, async (req, res) => {
+  try {
+    const userId = req.params.userId;
 
-        if (!user) {
-            return res.status(404).json({ message: 'User not found' });
-        }
-
-        res.status(200).json({ user });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Error retrieving user profile' });
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
     }
+
+    res.status(200).json({ user });
+  } catch (error) {
+    res.status(500).json({ message: 'Error retrieving user profile' });
+  }
 });
 
 
 // Create a new user (only available to admins)
-router.post('/create', requireRole('admin'), (req, res) => {
-    // Your logic for creating a new user here
-    // Only users with the 'admin' role can access this route
+router.post('/create-user', isAdmin, async (req, res) => {
+  const saltRounds = 10;
+  const salt = await bcrypt.genSalt(saltRounds);
+  const hash = await bcrypt.hash(req.body.password, salt);
+  req.body.password = hash;
+  const { name, email, password, role } = req.body;
+
+  const user = new User({ name, email, password, role });
+
+  try {
+    await user.save();
+    res.status(201).json({ message: 'User Creation successful', user: user });
+  } catch (error) {
+
+    res.status(400).json({ message: 'User Registration failed' });
+  }
 });
 
-// Edit an existing user
-router.put('/edit/:id', requireRole('admin'), (req, res) => {
-    // Your logic for editing a user by ID here
-    // Only users with the 'admin' role can access this route
+
+// Update a user by ID
+router.put('/edit-user/:id', isAdmin, async (req, res) => {
+  const userId = req.params.id;
+  const { email, name, role } = req.body;
+
+  try {
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    if (email) {
+      user.email = email;
+    }
+    if (name) {
+      user.name = name;
+    }
+    if (role) {
+      user.role = role;
+    }
+    await user.save();
+
+    return res.json({ message: 'User updated successfully', user });
+  } catch (error) {
+
+    return res.status(500).json({ error: 'Internal Server Error' });
+  }
 });
+
 
 // Delete a user by ID
-router.delete('/delete/:id', requireRole('admin'), (req, res) => {
-    // Your logic for deleting a user by ID here
-    // Only users with the 'admin' role can access this route
-});
+router.delete('/delete-user/:id', isAdmin, async (req, res) => {
+  const userId = req.params.id;
+  try {
+    const deletedUser = await User.deleteOne({ _id: userId });
 
-
-// Protected route: Admin Dashboard
-router.get('/admin', requireRole('admin'), async (req, res) => {
-    try {
-        // Access user data from req.user (decoded JWT payload)
-        // Assuming you have an Admin model
-        const adminId = req.user.userId;
-
-        // Fetch admin-specific data from the database
-        const adminData = await Admin.findById(adminId);
-
-        if (!adminData) {
-            return res.status(404).json({ message: 'Admin data not found' });
-        }
-
-        // Implement any additional logic needed for the admin dashboard
-
-        res.status(200).json({ adminData });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Error accessing admin dashboard' });
+    if (deletedUser.deletedCount === 0) {
+      return res.status(404).json({ error: 'User not found' });
     }
+
+    return res.json({ message: 'User Deleted successfully' });
+  } catch (error) {
+
+    return res.status(500).json({ error: 'Internal Server Error' });
+  }
 });
 
 
